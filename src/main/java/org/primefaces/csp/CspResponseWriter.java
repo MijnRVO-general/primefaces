@@ -32,10 +32,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.faces.component.UIComponent;
+import javax.faces.context.FacesContext;
 import javax.faces.context.ResponseWriter;
 import javax.faces.context.ResponseWriterWrapper;
+
+import org.primefaces.context.PrimeApplicationContext;
 import org.primefaces.util.EscapeUtils;
 import org.primefaces.util.LangUtils;
+import org.primefaces.util.Lazy;
 
 public class CspResponseWriter extends ResponseWriterWrapper {
 
@@ -62,11 +66,17 @@ public class CspResponseWriter extends ResponseWriterWrapper {
     private String lastId;
     private String lastNonce;
     private Map<String, String> lastEvents;
+    private boolean isWritingJavascript = false;
+
+    private Lazy<Boolean> policyProvided;
 
     @SuppressWarnings("deprecation") // the default constructor is deprecated in JSF 2.3
     public CspResponseWriter(ResponseWriter wrapped, CspState cspState) {
         this.wrapped = wrapped;
         this.cspState = cspState;
+
+        policyProvided = new Lazy<>(() ->
+                PrimeApplicationContext.getCurrentInstance(FacesContext.getCurrentInstance()).getConfig().isPolicyProvided());
     }
 
     @Override
@@ -106,7 +116,7 @@ public class CspResponseWriter extends ResponseWriterWrapper {
     public void endElement(String name) throws IOException {
         listenOnEndAttribute();
 
-        if ("body".equalsIgnoreCase(name)) {
+        if (!cspState.getEventHandlers().isEmpty()) {
             writeJavascriptHandlers();
         }
 
@@ -181,8 +191,10 @@ public class CspResponseWriter extends ResponseWriterWrapper {
         }
 
         // no nonce written -> do it
-        if ("script".equalsIgnoreCase(lastElement) && LangUtils.isValueBlank(lastNonce)) {
-            getWrapped().writeAttribute("nonce", cspState.getNonce(), null);
+        if (Boolean.FALSE.equals(policyProvided.get())) {
+            if ("script".equalsIgnoreCase(lastElement) && LangUtils.isValueBlank(lastNonce)) {
+                getWrapped().writeAttribute("nonce", cspState.getNonce(), null);
+            }
         }
 
         if (lastEvents != null && !lastEvents.isEmpty()) {
@@ -213,6 +225,11 @@ public class CspResponseWriter extends ResponseWriterWrapper {
      * Write javascript collected from event/URI handlers to a separate <code>script</code> block.
      */
     void writeJavascriptHandlers() throws IOException {
+        if (isWritingJavascript) {
+            return;
+        }
+        isWritingJavascript = true;
+
         reset();
 
         if (cspState.getEventHandlers() == null || cspState.getEventHandlers().isEmpty()) {
@@ -244,6 +261,7 @@ public class CspResponseWriter extends ResponseWriterWrapper {
         endElement("script");
 
         cspState.getEventHandlers().clear();
+        isWritingJavascript = false;
     }
 
     @Override

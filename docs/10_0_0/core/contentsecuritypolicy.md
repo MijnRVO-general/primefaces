@@ -19,6 +19,21 @@ CSP is disabled by default and a global parameter is required to turn it on.
     <param-value>true</param-value>
 </context-param>
 ```
+
+When using Primefaces in a Portlet context you might want to generate the Nonce and set the CSP header outside of
+Primefaces. Using `policyProvided` will make the code CSP complient while not setting the CSP Header.
+
+```xml
+<context-param>
+    <param-name>primefaces.CSP</param-name>
+    <param-value>policyProvided</param-value>
+</context-param>
+<context-param>
+    <param-name>primefaces.CSP_REPORT_ONLY_POLICY</param-name>
+    <param-value>report-uri /my-csp-reports</param-value>
+</context-param>
+```
+
 ## Policy
 There are many ways to configure CSP for different levels of security. Currently, PrimeFaces has chosen to
 support the NONCE (number used once) based checking for script evaluation only. Nonce attributes are automatically

@@ -41,12 +41,15 @@ public class CspPhaseListener implements PhaseListener {
 
     private static final long serialVersionUID = 1L;
 
-    private Lazy<Boolean> enabled;
+    private Lazy<Boolean> cspEnabled;
+    private Lazy<Boolean> policyProvided;
     private Lazy<String> customPolicy;
 
     public CspPhaseListener() {
-        enabled = new Lazy<>(() ->
+        cspEnabled = new Lazy<>(() ->
                 PrimeApplicationContext.getCurrentInstance(FacesContext.getCurrentInstance()).getConfig().isCsp());
+        policyProvided = new Lazy<>(() ->
+                PrimeApplicationContext.getCurrentInstance(FacesContext.getCurrentInstance()).getConfig().isPolicyProvided());
         customPolicy = new Lazy<>(() ->
                 PrimeApplicationContext.getCurrentInstance(FacesContext.getCurrentInstance()).getConfig().getCspPolicy());
     }
@@ -58,13 +61,13 @@ public class CspPhaseListener implements PhaseListener {
 
     @Override
     public void beforePhase(PhaseEvent event) {
-        if (Boolean.FALSE.equals(enabled.get())) {
+        if (Boolean.FALSE.equals(cspEnabled.get()) || Boolean.TRUE.equals(policyProvided.get())) {
             return;
         }
 
         FacesContext context = event.getFacesContext();
         ExternalContext externalContext = context.getExternalContext();
-        // TODO Support portlet environments?
+
         if (externalContext.getResponse() instanceof HttpServletResponse) {
             HttpServletResponse response = (HttpServletResponse) externalContext.getResponse();
             CspState state = PrimeFacesContext.getCspState(context);

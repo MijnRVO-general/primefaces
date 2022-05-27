@@ -56,6 +56,7 @@ public class PrimeConfiguration {
     private final boolean earlyPostParamEvaluation;
     private final boolean moveScriptsToBottom;
     private boolean csp;
+    private boolean policyProvided;
     private String cspPolicy;
     private String[] exceptionTypesToIgnoreInLogging;
     private final String multiViewStateStore;
@@ -130,6 +131,9 @@ public class PrimeConfiguration {
         value = externalContext.getInitParameter(Constants.ContextParams.CSP);
         csp = Boolean.parseBoolean(value);
         if (csp) {
+            value = externalContext.getInitParameter(Constants.ContextParams.POLICY_PROVIDED);
+            policyProvided = Boolean.parseBoolean(value);
+
             cspPolicy = externalContext.getInitParameter(Constants.ContextParams.CSP_POLICY);
         }
 
@@ -258,6 +262,10 @@ public class PrimeConfiguration {
 
     public boolean isCsp() {
         return csp;
+    }
+
+    public boolean isPolicyProvided() {
+        return policyProvided;
     }
 
     public String getCspPolicy() {
